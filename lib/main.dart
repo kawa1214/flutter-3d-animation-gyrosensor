@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -8,7 +9,6 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -35,52 +35,58 @@ class _MyHomePageState extends State<MyHomePage> {
   static const _maxAngle = 120;
   static const _maxForegroundMove = Offset(50, 50);
   static const _inititalForegroundOffset = Offset(400, 30);
-  static const _inititalForegroundSecondOffset = Offset(0, 0);
-
   static const _inititalBackgroundOffset = Offset(0, 0);
+
   Offset _foregroundOffset = _inititalForegroundOffset;
-  Offset _foregroundSecondOffset = _inititalForegroundSecondOffset;
   Offset _backgroundOffset = _inititalBackgroundOffset;
+  late StreamSubscription<sensors.GyroscopeEvent> _streamGyrpscopeEvent;
 
   @override
   void initState() {
-    sensors.gyroscopeEvents.listen((sensors.GyroscopeEvent gyro) {
-      final angle = Offset(
-        gyro.x * _interval * 180 / pi,
-        gyro.y * _interval * 180 / pi,
-      );
-
-      if (angle.dx >= _maxAngle || angle.dy >= _maxAngle) {
-        return;
-      }
-
-      final addForegroundOffset = Offset(
-        angle.dx / _maxAngle * _maxForegroundMove.dx,
-        angle.dy / _maxAngle * _maxForegroundMove.dy,
-      );
-
-      final newForegroundOffse = _foregroundOffset + addForegroundOffset;
-
-      if (newForegroundOffse.dx >=
-              _inititalForegroundOffset.dx + _maxForegroundMove.dx ||
-          newForegroundOffse.dx <=
-              _inititalForegroundOffset.dx - _maxForegroundMove.dx ||
-          newForegroundOffse.dy >=
-              _inititalForegroundOffset.dy + _maxForegroundMove.dy ||
-          newForegroundOffse.dy <=
-              _inititalForegroundOffset.dy - _maxForegroundMove.dy) {
-        return;
-      }
-      setState(() {
-        _foregroundOffset = _foregroundOffset + addForegroundOffset;
-        _foregroundSecondOffset =
-            _foregroundSecondOffset - addForegroundOffset * 0.4;
-        _backgroundOffset = _backgroundOffset -
-            addForegroundOffset * _backgroundMoveOffsetScale;
-      });
-    });
-
+    _streamGyrpscopeEvent =
+        sensors.gyroscopeEvents.listen((_listenGyroscopeEvent));
     super.initState();
+  }
+
+  void _listenGyroscopeEvent(sensors.GyroscopeEvent event) {
+    final angle = Offset(
+      event.x * _interval * 180 / pi,
+      event.y * _interval * 180 / pi,
+    );
+
+    if (angle.dx >= _maxAngle || angle.dy >= _maxAngle) {
+      return;
+    }
+
+    final addForegroundOffset = Offset(
+      angle.dx / _maxAngle * _maxForegroundMove.dx,
+      angle.dy / _maxAngle * _maxForegroundMove.dy,
+    );
+
+    final newForegroundOffse = _foregroundOffset + addForegroundOffset;
+
+    if (newForegroundOffse.dx >=
+            _inititalForegroundOffset.dx + _maxForegroundMove.dx ||
+        newForegroundOffse.dx <=
+            _inititalForegroundOffset.dx - _maxForegroundMove.dx ||
+        newForegroundOffse.dy >=
+            _inititalForegroundOffset.dy + _maxForegroundMove.dy ||
+        newForegroundOffse.dy <=
+            _inititalForegroundOffset.dy - _maxForegroundMove.dy) {
+      return;
+    }
+
+    setState(() {
+      _foregroundOffset = _foregroundOffset + addForegroundOffset;
+      _backgroundOffset =
+          _backgroundOffset - addForegroundOffset * _backgroundMoveOffsetScale;
+    });
+  }
+
+  @override
+  void dispose() {
+    _streamGyrpscopeEvent.cancel();
+    super.dispose();
   }
 
   @override
@@ -114,43 +120,39 @@ class _MyHomePageState extends State<MyHomePage> {
           Positioned(
             top: 160,
             right: 16,
-            child: Text(
-              '3D効果は\nユーザにどのような影響を\n与えるのだろう...',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 22,
-              ),
-            ),
+            child: _buildMiddleText,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBackgroundImage(Size size) {
-    return Image.asset(
-      'assets/background.png',
-      fit: BoxFit.fitWidth,
-      height: size.height,
-      width: size.width,
-    );
-  }
+  Widget get _buildMiddleText => Text(
+        '3D効果は\nユーザにどのような影響を\n与えるのだろう...',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 22,
+        ),
+      );
 
-  Widget get _buildHalloween {
-    return Image.asset(
-      'assets/halloween.png',
-      height: 150,
-      width: 150,
-    );
-  }
+  Widget _buildBackgroundImage(Size size) => Image.asset(
+        'assets/background.png',
+        fit: BoxFit.fitWidth,
+        height: size.height,
+        width: size.width,
+      );
 
-  Widget _buildEffect(Size size) {
-    return Image.asset(
-      'assets/effect.png',
-      height: size.height,
-      width: size.width,
-      fit: BoxFit.fitHeight,
-    );
-  }
+  Widget get _buildHalloween => Image.asset(
+        'assets/halloween.png',
+        height: 150,
+        width: 150,
+      );
+
+  Widget _buildEffect(Size size) => Image.asset(
+        'assets/effect.png',
+        height: size.height,
+        width: size.width,
+        fit: BoxFit.fitHeight,
+      );
 }
